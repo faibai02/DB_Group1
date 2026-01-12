@@ -1,0 +1,7 @@
+{
+  "name": "Foodie - Premium Food Delivery",
+  "description": "A comprehensive food delivery web application featuring order tracking, smart recommendations, and seamless checkout experience.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
