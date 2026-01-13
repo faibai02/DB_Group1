@@ -1,7 +1,7 @@
 <?php
 
 class FoodDeliveryDatabase {
-    private $host = "localhost";
+    private $host = "localhost:3306";
     private $db_name = "food_delivery_db";
     private $username = "root";
     private $password = "";

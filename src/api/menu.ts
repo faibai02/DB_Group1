@@ -3,19 +3,19 @@ import type { FoodItem } from "../types";
 
 type DishRow = {
   dish_id: number;
+  restaurant_id: number;
   name: string;
   description: string;
   price: string | number;
   category: string;
   restaurant: string;
-  restaurant_id: number;
 };
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=1200";
 
 export async function fetchMenu(): Promise<FoodItem[]> {
-  const rows = await getJSON<DishRow[]>("api.php");
+  const rows = await getJSON<DishRow[]>("home");
 
   return rows.map((r) => ({
     id: String(r.dish_id),

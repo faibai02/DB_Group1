@@ -23,7 +23,7 @@ const Restaurants: React.FC<RestaurantsProps> = ({ onSelectRestaurant }) => {
 
   const fetchRestaurants = async () => {
     try {
-      const response = await fetch('http://localhost/api/restaurants.php');
+      const response = await fetch('http://localhost:6969/restaurant');
       if (!response.ok) throw new Error('Failed to fetch restaurants');
       const data = await response.json();
       setRestaurants(data);

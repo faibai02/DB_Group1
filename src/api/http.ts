@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost/api";
+const BASE_URL = "http://localhost:6969";
 
 export async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE_URL}/${path}`);
