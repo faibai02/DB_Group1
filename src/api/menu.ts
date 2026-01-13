@@ -8,6 +8,7 @@ type DishRow = {
   price: string | number;
   category: string;
   restaurant: string;
+  restaurant_id: number;
 };
 
 const FALLBACK_IMAGE =
@@ -24,6 +25,7 @@ export async function fetchMenu(): Promise<FoodItem[]> {
     image: FALLBACK_IMAGE,     // your DB doesn't have image URLs yet
     category: r.category ?? "",
     restaurant: r.restaurant ?? "",
+    restaurant_id: r.restaurant_id,
     rating: 4.6,               // optional placeholders
     reviews: 100,
   }));

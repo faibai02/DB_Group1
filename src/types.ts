@@ -9,6 +9,7 @@ export interface FoodItem {
   rating?: number;
   reviews?: number;
   restaurant?: string;
+  restaurant_id?: number;
 }
 
 export interface OrderItem {
@@ -26,4 +27,4 @@ export interface Order {
   status: 'confirmed' | 'preparing' | 'on-the-way' | 'delivered';
 }
 
-export type Screen = 'home' | 'detail' | 'checkout' | 'tracking' | 'confirmation' | 'profile' | 'orders' | 'favorites';
+export type Screen = 'home' | 'detail' | 'checkout' | 'tracking' | 'confirmation' | 'profile' | 'orders' | 'favorites' | 'restaurants';

@@ -27,14 +27,24 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, currentScreen }) => {
           >
             Home
           </button>
-          <button className="text-[#1b140d] text-sm font-medium leading-normal hover:text-[#ec8013] transition-colors">Menu</button>
+          <button 
+            onClick={() => onNavigate('restaurants')}
+            className={`text-sm font-medium leading-normal hover:text-[#ec8013] transition-colors ${currentScreen === 'restaurants' ? 'text-[#ec8013]' : 'text-[#1b140d]'}`}
+          >
+            Restaurants
+          </button>
+          <button 
+            onClick={() => onNavigate('orders')}
+            className={`text-sm font-medium leading-normal hover:text-[#ec8013] transition-colors ${currentScreen === 'orders' ? 'text-[#ec8013]' : 'text-[#1b140d]'}`}
+          >
+            My Orders
+          </button>
           <button 
             onClick={() => onNavigate('favorites')}
             className={`text-sm font-medium leading-normal hover:text-[#ec8013] transition-colors ${currentScreen === 'favorites' ? 'text-[#ec8013]' : 'text-[#1b140d]'}`}
           >
             Browse
           </button>
-          <button className="text-[#1b140d] text-sm font-medium leading-normal hover:text-[#ec8013] transition-colors">Offers</button>
         </nav>
       </div>
       <div className="flex flex-1 justify-end gap-6 items-center">
