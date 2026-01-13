@@ -1,17 +1,17 @@
 
 import React, { useState } from 'react';
-import { Screen, FoodItem } from './types';
+import { Screen, FoodItem } from './src/types';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import Home from './screens/Home';
-import ProductDetail from './screens/ProductDetail';
-import Checkout from './screens/Checkout';
-import Tracking from './screens/Tracking';
-import Confirmation from './screens/Confirmation';
-import Profile from './screens/Profile';
-import Orders from './screens/Orders';
-import Favorites from './screens/Favorites';
-import { MOCK_ITEMS } from './constants';
+import Home from './src/screens/Home';
+import ProductDetail from './src/screens/ProductDetail';
+import Checkout from './src/screens/Checkout';
+import Tracking from './src/screens/Tracking';
+import Confirmation from './src/screens/Confirmation';
+import Profile from './src/screens/Profile';
+import Orders from './src/screens/Orders';
+import Favorites from './src/screens/Favorites';
+import { MOCK_ITEMS } from './src/constants';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
