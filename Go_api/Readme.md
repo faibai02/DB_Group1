@@ -8,7 +8,7 @@ Second run command in cmd
 That all now the server is on 
 
 
-IMPORTANCE:
+IMPORTANT:
 BEFORE USE MAKE SURE EVERY RECORD IN THE DB HAS SOME VALUES (NO NULL VALUE) 
 OR ELSE IT WILL NOT WORK  
 
