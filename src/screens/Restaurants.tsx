@@ -1,31 +1,22 @@
 import React, { useEffect, useState } from 'react';
-
-interface Restaurant {
-  restaurant_id: number;
-  name: string;
-  address?: string;
-  phone?: string;
-  opening_hours?: string;
-}
+import { fetchRestaurants, RestaurantRow } from '../api/restaurants';
 
 interface RestaurantsProps {
   onSelectRestaurant: (restaurantId: number, name: string) => void;
 }
 
 const Restaurants: React.FC<RestaurantsProps> = ({ onSelectRestaurant }) => {
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchRestaurants();
+    loadRestaurants();
   }, []);
 
-  const fetchRestaurants = async () => {
+  const loadRestaurants = async () => {
     try {
-      const response = await fetch('http://localhost:6969/restaurant');
-      if (!response.ok) throw new Error('Failed to fetch restaurants');
-      const data = await response.json();
+      const data = await fetchRestaurants();
       setRestaurants(data);
       setLoading(false);
     } catch (err) {
@@ -54,7 +45,7 @@ const Restaurants: React.FC<RestaurantsProps> = ({ onSelectRestaurant }) => {
             {/* Image */}
             <div className="aspect-video bg-gradient-to-br from-[#f3ede7] to-[#e8ddd5] relative overflow-hidden">
               <img 
-                src={`https://picsum.photos/seed/${restaurant.name}/400/200`}
+                src={restaurant.image}
                 alt={restaurant.name}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />

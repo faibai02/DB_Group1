@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
   	"github.com/gin-gonic/gin"
@@ -25,7 +26,7 @@ func Init()(*server,error) {
 	// init router and config
 	r := gin.Default()
 	config:= cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000"}
+	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3001"}
 	config.AllowCredentials = true
 	r.Use(cors.New(config))
 
@@ -49,11 +50,16 @@ func (s *server) Run(port string) {
 	s.router.GET("/home",s.getHome)
 
 	s.router.POST("/login",s.logIn)
+	s.router.POST("/logout",s.logOut)
+	s.router.GET("/auth/check",s.checkAuth)
 	// authorise function
 	authorise := s.router.Group("/user")
 	authorise.Use(s.AuthMid)
 	{
 		authorise.GET("/profile",s.getProfile)
+		authorise.GET("/orders",s.getOrders)
+		authorise.DELETE("/orders/:id",s.deleteOrder)
+		authorise.PUT("/orders/:id",s.updateOrder)
 	}
 	
 		
@@ -98,7 +104,10 @@ func (s *server) getRestaurant(c *gin.Context){
 func (s *server) getHome(c *gin.Context){
 	dishes,err := s.database.GetAllDishes()
 	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
+		// Log the error for debugging
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 	// return json array if everything ok
@@ -176,4 +185,197 @@ func (s *server) getProfile(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK,cus)
 
+}
+
+// check authentication status
+func (s *server) checkAuth(c *gin.Context) {
+	tokenSigned,err := c.Cookie("Authorisation")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"authenticated": false,
+		})
+		return
+	}
+
+	token, err := jwt.Parse(tokenSigned, func(token *jwt.Token) (any, error) {
+		return []byte(secret), nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+
+	if claims,ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if float64(time.Now().Unix()) > claims["exp"].(float64) {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"authenticated": false,
+			})
+			return
+		}
+		
+		email := claims["sub"].(string)
+		cus, err := s.database.GetCustomer(email)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"authenticated": false,
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"authenticated": true,
+			"name": cus.Name,
+			"email": cus.Email,
+			"customerId": cus.ID,
+		})
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"authenticated": false,
+		})
+	}
+}
+
+// logout handler
+func (s *server) logOut(c *gin.Context) {
+	c.SetCookie("Authorisation", "", -1, "", "", false, true)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "logged out successfully",
+	})
+}
+
+// get orders for authenticated user
+func (s *server) getOrders(c *gin.Context) {
+	email, ok := c.Get("customer_email")
+	if !ok || len(email.(string)) == 0 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	cus, err := s.database.GetCustomer(email.(string))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "customer not found",
+		})
+		return
+	}
+
+	orders, err := s.database.GetCustomerOrders(cus.ID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "failed to fetch orders",
+		})
+		return
+	}
+
+	// Return empty array instead of null if no orders
+	if orders == nil {
+		c.JSON(http.StatusOK, []interface{}{})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}
+
+// delete order (only if status is Pending)
+func (s *server) deleteOrder(c *gin.Context) {
+	email, ok := c.Get("customer_email")
+	if !ok || len(email.(string)) == 0 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	cus, err := s.database.GetCustomer(email.(string))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "customer not found",
+		})
+		return
+	}
+
+	orderId := c.Param("id")
+	if orderId == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "order ID required",
+		})
+		return
+	}
+
+	var orderIdInt int
+	if _, err := fmt.Sscanf(orderId, "%d", &orderIdInt); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "invalid order ID",
+		})
+		return
+	}
+
+	err = s.database.DeleteOrder(orderIdInt, cus.ID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "order deleted successfully",
+	})
+}
+
+// update order delivery address (only if status is Pending)
+func (s *server) updateOrder(c *gin.Context) {
+	email, ok := c.Get("customer_email")
+	if !ok || len(email.(string)) == 0 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	cus, err := s.database.GetCustomer(email.(string))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "customer not found",
+		})
+		return
+	}
+
+	orderId := c.Param("id")
+	if orderId == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "order ID required",
+		})
+		return
+	}
+
+	var orderIdInt int
+	if _, err := fmt.Sscanf(orderId, "%d", &orderIdInt); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "invalid order ID",
+		})
+		return
+	}
+
+	var body struct {
+		DeliveryAddress string `json:"delivery_address"`
+	}
+	
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "invalid request body",
+		})
+		return
+	}
+
+	if body.DeliveryAddress == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "delivery address required",
+		})
+		return
+	}
+
+	err = s.database.UpdateOrderAddress(orderIdInt, cus.ID, body.DeliveryAddress)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "order updated successfully",
+	})
 }

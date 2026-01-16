@@ -2,31 +2,29 @@ import { getJSON } from "./http";
 import type { FoodItem } from "../types";
 
 type DishRow = {
-  dish_id: number;
+  id: number;
   restaurant_id: number;
   name: string;
   description: string;
-  price: string | number;
+  price: number;
+  image: string;
   category: string;
   restaurant: string;
 };
-
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=1200";
 
 export async function fetchMenu(): Promise<FoodItem[]> {
   const rows = await getJSON<DishRow[]>("home");
 
   return rows.map((r) => ({
-    id: String(r.dish_id),
+    id: String(r.id),
     name: r.name,
     description: r.description ?? "",
     price: Number(r.price),
-    image: FALLBACK_IMAGE,     // your DB doesn't have image URLs yet
+    image: r.image,
     category: r.category ?? "",
     restaurant: r.restaurant ?? "",
     restaurant_id: r.restaurant_id,
-    rating: 4.6,               // optional placeholders
+    rating: 4.6,
     reviews: 100,
   }));
 }

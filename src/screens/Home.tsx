@@ -1,162 +1,188 @@
 import React, { useEffect, useState } from 'react';
 import { FoodItem } from '../types';
 import { fetchMenu } from '../api/menu';
+import { fetchRestaurants, RestaurantRow } from '../api/restaurants';
+import { useCart } from '../context/CartContext';
 
 interface HomeProps {
   onSelectProduct: (item: FoodItem) => void;
+  onNavigateToRestaurants?: () => void;
 }
 
-const Home: React.FC<HomeProps> = ({ onSelectProduct }) => {
+const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants }) => {
   const [items, setItems] = useState<FoodItem[]>([]);
+  const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { addToCart } = useCart();
+  const [addedToCartId, setAddedToCartId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMenu()
-      .then(setItems)
+    Promise.all([fetchMenu(), fetchRestaurants()])
+      .then(([dishesData, restaurantsData]) => {
+        setItems(dishesData);
+        setRestaurants(restaurantsData);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-8">Loading menu…</div>;
-  if (error) return <div className="p-8 text-red-600">Error: {error}</div>;
+  const handleAddToCart = (item: FoodItem, event: React.MouseEvent) => {
+    event.stopPropagation();
+    addToCart(item, 1);
+    setAddedToCartId(item.id);
+    setTimeout(() => setAddedToCartId(null), 1500);
+  };
+
+  // Group items by category
+  const categories = Array.from(new Set(items.map(item => item.category).filter(Boolean)));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <span className="material-icons-round text-6xl text-gray-400 animate-spin block mb-4">
+            autorenew
+          </span>
+          <p className="text-[#9a734c] font-bold">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) return <div className="p-8 text-center text-red-600">Error: {error}</div>;
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 py-8 space-y-12">
-      {/* Action Chips */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button className="flex items-center justify-center gap-3 py-4 px-6 bg-white border border-[#f3ede7] rounded-xl hover:shadow-md hover:border-[#ec8013] transition-all group">
-          <span className="material-icons-round text-[#ec8013] group-hover:scale-110 transition-transform">favorite_border</span>
-          <span className="font-bold text-[#1b140d]">Favorites</span>
-        </button>
-        <button className="flex items-center justify-center gap-3 py-4 px-6 bg-white border border-[#f3ede7] rounded-xl hover:shadow-md hover:border-[#ec8013] transition-all group">
-          <span className="material-icons-round text-[#ec8013] group-hover:scale-110 transition-transform">history</span>
-          <span className="font-bold text-[#1b140d]">History</span>
-        </button>
-        <button className="flex items-center justify-center gap-3 py-4 px-6 bg-white border border-[#f3ede7] rounded-xl hover:shadow-md hover:border-[#ec8013] transition-all group">
-          <span className="material-icons-round text-[#ec8013] group-hover:scale-110 transition-transform">receipt_long</span>
-          <span className="font-bold text-[#1b140d]">Orders</span>
-        </button>
-      </div>
-
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#f3ede7] shadow-sm">
-        <div className="flex flex-col md:flex-row items-center">
-          <div className="p-8 md:p-12 md:w-1/2 flex flex-col items-start z-10 space-y-4">
-            <h1 className="text-4xl md:text-5xl font-black text-[#1b140d] leading-tight">
-              Order anywhere,<br/>
-              <span className="text-[#ec8013]">anytime!</span>
-            </h1>
-            <p className="text-lg text-[#9a734c] max-w-md">
-              Fresh ingredients, delicious meals, delivered straight to your doorstep in minutes.
-            </p>
-            <button
-              onClick={() => items[2] && onSelectProduct(items[2])}
-              className="bg-[#ec8013] hover:bg-[#d67210] text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:-translate-y-0.5 transition-all flex items-center gap-2"
-            >
-              Order Now
-              <span className="material-icons-round">arrow_forward</span>
-            </button>
-            <div className="flex gap-2 pt-4">
-              <div className="w-2 h-2 rounded-full bg-[#1b140d]"></div>
-              <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-              <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#ec8013] to-[#d67210] shadow-xl">
+        <div className="p-8 md:p-12 text-center space-y-4">
+          <h1 className="text-4xl md:text-5xl font-black text-white leading-tight">
+            Welcome to Foodie
+          </h1>
+          <p className="text-lg text-white/90 max-w-2xl mx-auto">
+            Discover delicious meals from {restaurants.length} restaurants. Order now and get it delivered fast!
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 pt-4">
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-3 text-white">
+              <div className="text-2xl font-black">{items.length}</div>
+              <div className="text-sm">Dishes Available</div>
+            </div>
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-3 text-white">
+              <div className="text-2xl font-black">{restaurants.length}</div>
+              <div className="text-sm">Restaurants</div>
+            </div>
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-3 text-white">
+              <div className="text-2xl font-black">{categories.length}</div>
+              <div className="text-sm">Categories</div>
             </div>
           </div>
-          <div className="md:w-1/2 h-64 md:h-96 relative w-full">
-            <img
-              alt="Fresh food composition"
-              className="absolute inset-0 w-full h-full object-cover"
-              src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=1200"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#f3ede7] via-transparent to-transparent md:w-1/3"></div>
-          </div>
         </div>
       </div>
 
-      {/* Categories / Hottest Lunches */}
+      {/* Categories */}
+      {categories.length > 0 && (
+        <section>
+          <h2 className="text-2xl font-black text-[#1b140d] mb-6">Browse by Category</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {categories.map((category) => {
+              const categoryItems = items.filter(item => item.category === category);
+              const firstItem = categoryItems[0];
+              return (
+                <button
+                  key={category}
+                  onClick={() => firstItem && onSelectProduct(firstItem)}
+                  className="group relative aspect-square rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all border-2 border-transparent hover:border-[#ec8013]"
+                >
+                  <img
+                    src={firstItem?.image}
+                    alt={category}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 right-0 p-3 text-center">
+                    <div className="text-white font-black text-sm">{category}</div>
+                    <div className="text-white/80 text-xs">{categoryItems.length} items</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* All Dishes */}
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-[#1b140d] flex items-center gap-2">
-            Hottest Lunches
-            <span className="material-icons-round text-[#ec8013]">local_fire_department</span>
-          </h2>
-          <button className="text-[#ec8013] hover:text-[#d67210] font-bold flex items-center gap-1 text-sm transition-colors">
-            View All
-            <span className="material-icons-round text-base">chevron_right</span>
-          </button>
+          <h2 className="text-2xl font-black text-[#1b140d]">All Dishes</h2>
+          <span className="text-sm text-[#9a734c]">{items.length} dishes</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {items.map((item) => (
             <div
               key={item.id}
-              className="group cursor-pointer text-center"
+              className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-xl transition-all border border-transparent hover:border-[#f3ede7] flex flex-col group cursor-pointer"
               onClick={() => onSelectProduct(item)}
             >
-              <div className="aspect-square w-full overflow-hidden rounded-full border-4 border-transparent group-hover:border-[#ec8013] transition-all shadow-sm">
+              <div className="relative w-full h-48 mb-4 rounded-2xl overflow-hidden">
                 <img
                   alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
                   src={item.image}
                 />
               </div>
-              <h3 className="mt-3 text-base font-bold text-[#1b140d]">{item.name}</h3>
-            </div>
-          ))}
 
-          <div className="group cursor-pointer text-center hidden lg:block">
-            <div className="aspect-square w-full overflow-hidden rounded-full border-4 border-transparent group-hover:border-[#ec8013] transition-all shadow-sm">
-              <img
-                alt="Drinks"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                src="https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=400"
-              />
-            </div>
-            <h3 className="mt-3 text-base font-bold text-[#1b140d]">Drinks</h3>
-          </div>
-        </div>
-      </section>
-
-      {/* Order Again */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-[#1b140d]">Order Again</h2>
-          <div className="flex gap-2">
-            <button className="p-2 rounded-full border border-[#f3ede7] hover:bg-gray-100 transition-colors">
-              <span className="material-icons-round text-gray-600">arrow_back</span>
-            </button>
-            <button className="p-2 rounded-full border border-[#f3ede7] hover:bg-gray-100 transition-colors">
-              <span className="material-icons-round text-gray-600">arrow_forward</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {items.slice(0, 4).map((item) => (
-            <div
-              key={`again-${item.id}`}
-              className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-xl transition-all border border-transparent hover:border-[#f3ede7] flex flex-col items-center text-center group cursor-pointer"
-              onClick={() => onSelectProduct(item)}
-            >
-              <div className="relative w-40 h-40 mb-4">
-                <img
-                  alt={item.name}
-                  className="w-full h-full object-cover rounded-full shadow-md transition-transform group-hover:scale-105"
-                  src={item.image}
-                />
-                <div className="absolute bottom-0 right-0 bg-white rounded-full p-1.5 shadow-sm border border-[#f3ede7]">
-                  <span className="material-icons-round text-[#ec8013] text-sm">favorite</span>
+              <div className="flex-grow space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] font-black text-[#9a734c] uppercase tracking-widest">
+                    {item.category || 'Uncategorized'}
+                  </div>
+                  {item.restaurant && (
+                    <div className="text-[10px] font-bold text-[#ec8013]">
+                      {item.restaurant}
+                    </div>
+                  )}
                 </div>
+                <h3 className="font-bold text-lg text-[#1b140d] leading-tight line-clamp-2">
+                  {item.name}
+                </h3>
               </div>
-              <div className="text-[10px] font-black text-[#9a734c] uppercase tracking-widest mb-1">
-                {item.restaurant}
+
+              <div className="mt-4 pt-4 border-t border-[#f3ede7] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-[#ec8013] font-black text-xl">
+                    ${item.price.toFixed(2)}
+                  </div>
+                  {item.rating && (
+                    <div className="flex items-center gap-1 text-sm">
+                      <span className="material-icons-round text-yellow-500 text-sm">star</span>
+                      <span className="font-bold text-[#1b140d]">{item.rating}</span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={(e) => handleAddToCart(item, e)}
+                  className={`w-full py-2.5 rounded-xl transition-all text-sm font-bold shadow-sm ${
+                    addedToCartId === item.id
+                      ? 'bg-green-500 text-white'
+                      : 'bg-[#ec8013] text-white hover:bg-[#d67210]'
+                  }`}
+                >
+                  {addedToCartId === item.id ? (
+                    <span className="flex items-center justify-center gap-1">
+                      <span className="material-icons-round text-sm">check</span>
+                      Added!
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-1">
+                      <span className="material-icons-round text-sm">add_shopping_cart</span>
+                      Add to Cart
+                    </span>
+                  )}
+                </button>
               </div>
-              <h3 className="font-bold text-lg text-[#1b140d] mb-1 leading-tight">{item.name}</h3>
-              <div className="text-[#ec8013] font-black text-xl mb-4">${item.price.toFixed(2)}</div>
-              <button className="w-full py-2 rounded-xl bg-[#f3ede7] text-[#1b140d] hover:bg-[#ec8013] hover:text-white transition-all text-sm font-bold shadow-sm">
-                Add to Cart
-              </button>
             </div>
           ))}
         </div>

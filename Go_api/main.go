@@ -1,27 +1,21 @@
 package main
 
-
 import (
-	_"fmt"
-	"log"
+"database_project/config"
+"log"
 )
 
-
 func main() {
-	server,err := Init()
+	// Initialize database connection
+	if err := config.InitDatabase(); err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer config.CloseDatabase()
+
+	server, err := Init()
 	if err != nil {
-		log.Fatalf("failed to init server %v",err)
+		log.Fatalf("Failed to init server: %v", err)
 	}
 
 	server.Run(":6969")
-
-	
-	
-
-						
-
-
-
-
-
 }

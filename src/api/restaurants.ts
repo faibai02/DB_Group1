@@ -1,42 +1,21 @@
 import { getJSON } from "./http";
 import type { FoodItem } from "../types";
 
-type RestaurantRow = {
+export interface RestaurantRow {
   restaurant_id: number;
   name: string;
   address?: string;
   phone?: string;
-  opening_hours?: string;
-};
+  opening_hour?: string;
+  image: string;
+}
 
 export async function fetchRestaurants(): Promise<RestaurantRow[]> {
-  const sql = `
-    SELECT DISTINCT
-      r.restaurant_id,
-      r.name,
-      r.address,
-      r.phone,
-      r.opening_hours
-    FROM restaurants r
-  `;
-  
-  return getJSON<RestaurantRow[]>("restaurants.php");
+  return getJSON<RestaurantRow[]>("restaurant");
 }
 
 export async function fetchDishByRestaurant(restaurantId: number): Promise<FoodItem[]> {
-  const sql = `
-    SELECT
-      d.dish_id,
-      d.name,
-      d.description,
-      d.price,
-      d.category,
-      r.name AS restaurant,
-      r.restaurant_id
-    FROM dishes d
-    JOIN restaurants r ON r.restaurant_id = d.restaurant_id
-    WHERE d.restaurant_id = ?
-  `;
-  
-  return getJSON<FoodItem[]>(`dishes.php?restaurant_id=${restaurantId}`);
+  // Get all dishes and filter by restaurant on the client side
+  const allDishes = await getJSON<FoodItem[]>("home");
+  return allDishes.filter(dish => dish.restaurant_id === restaurantId);
 }

@@ -1,11 +1,13 @@
 
 import React, { useState } from 'react';
+import { useCart } from '../context/CartContext';
 
 interface CheckoutProps {
   onPlaceOrder: () => void;
 }
 
 const Checkout: React.FC<CheckoutProps> = ({ onPlaceOrder }) => {
+  const { cart, removeFromCart, updateQuantity, getTotalPrice } = useCart();
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'cash'>('card');
 
   return (
@@ -134,74 +136,86 @@ const Checkout: React.FC<CheckoutProps> = ({ onPlaceOrder }) => {
             <div className="bg-white rounded-3xl shadow-2xl p-8 border border-[#f3ede7] space-y-6">
               <h3 className="text-xl font-black text-[#1b140d]">Order Summary</h3>
               
-              <div className="flex items-center gap-4 pb-6 border-b border-dashed border-gray-100">
-                <div className="size-16 rounded-2xl bg-[#f3ede7] shrink-0 overflow-hidden">
-                   <img src="https://picsum.photos/seed/rest/100/100" className="w-full h-full object-cover" />
+              {cart.length === 0 ? (
+                <div className="text-center py-8">
+                  <span className="material-icons-round text-6xl text-gray-300 mb-2">shopping_cart</span>
+                  <p className="text-[#9a734c] text-sm">Your cart is empty</p>
                 </div>
-                <div>
-                  <p className="font-black text-[#1b140d]">Burger King</p>
-                  <p className="text-sm text-[#9a734c]">Downtown Branch</p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                    {cart.map((item) => (
+                      <div key={item.id} className="flex justify-between items-start pb-4 border-b border-dashed border-gray-100">
+                        <div className="flex gap-3 flex-1">
+                          <span className="text-[#ec8013] font-black text-xs bg-[#ec8013]/10 px-2 py-1 rounded-md h-fit">{item.quantity}x</span>
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-[#1b140d]">{item.name}</p>
+                            <p className="text-xs text-[#9a734c] mt-1">${item.price.toFixed(2)} each</p>
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                                className="size-6 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold"
+                              >
+                                -
+                              </button>
+                              <button
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                className="size-6 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold"
+                              >
+                                +
+                              </button>
+                              <button
+                                onClick={() => removeFromCart(item.id)}
+                                className="ml-auto text-red-500 hover:text-red-600 text-xs font-bold"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="font-black text-sm text-[#1b140d]">${(item.price * item.quantity).toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
 
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex gap-3">
-                    <span className="text-[#ec8013] font-black text-xs bg-[#ec8013]/10 px-2 py-1 rounded-md h-fit">2x</span>
-                    <div>
-                      <p className="text-sm font-bold text-[#1b140d]">Double Whopper</p>
-                      <p className="text-[10px] text-[#9a734c] uppercase tracking-wide">Extra Cheese, No Onion</p>
+                  <div className="relative">
+                    <input className="w-full pl-4 pr-24 py-3 bg-gray-50 border-transparent focus:border-[#ec8013] focus:ring-0 rounded-2xl text-sm" placeholder="Promo code" />
+                    <button className="absolute right-1 top-1 bottom-1 px-4 bg-white text-[#ec8013] font-black text-xs rounded-xl shadow-sm hover:bg-gray-100 transition-colors">Apply</button>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100 space-y-3">
+                    <div className="flex justify-between text-sm text-[#9a734c]">
+                      <span>Subtotal</span>
+                      <span className="font-bold text-[#1b140d]">${getTotalPrice().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-[#9a734c]">
+                      <span>Delivery Fee</span>
+                      <span className="font-bold text-[#1b140d]">$2.99</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-[#9a734c]">
+                      <span>Tax</span>
+                      <span className="font-bold text-[#1b140d]">${(getTotalPrice() * 0.08).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-4 mt-2 border-t border-dashed border-gray-100">
+                      <span className="text-lg font-black text-[#1b140d]">Total</span>
+                      <span className="text-3xl font-black text-[#ec8013]">${(getTotalPrice() + 2.99 + getTotalPrice() * 0.08).toFixed(2)}</span>
                     </div>
                   </div>
-                  <p className="font-black text-sm text-[#1b140d]">$14.50</p>
-                </div>
-                <div className="flex justify-between items-start">
-                  <div className="flex gap-3">
-                    <span className="text-[#ec8013] font-black text-xs bg-[#ec8013]/10 px-2 py-1 rounded-md h-fit">1x</span>
-                    <div>
-                      <p className="text-sm font-bold text-[#1b140d]">French Fries (L)</p>
-                    </div>
-                  </div>
-                  <p className="font-black text-sm text-[#1b140d]">$3.99</p>
-                </div>
-              </div>
 
-              <div className="relative">
-                <input className="w-full pl-4 pr-24 py-3 bg-gray-50 border-transparent focus:border-[#ec8013] focus:ring-0 rounded-2xl text-sm" placeholder="Promo code" />
-                <button className="absolute right-1 top-1 bottom-1 px-4 bg-white text-[#ec8013] font-black text-xs rounded-xl shadow-sm hover:bg-gray-100 transition-colors">Apply</button>
-              </div>
+                  <button 
+                    onClick={onPlaceOrder}
+                    className="w-full bg-[#ec8013] hover:bg-[#d67210] text-white font-black py-4 px-6 rounded-2xl shadow-xl shadow-[#ec8013]/30 transition-all transform active:scale-95 flex items-center justify-between"
+                  >
+                    <span>Place Order</span>
+                    <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">${(getTotalPrice() + 2.99 + getTotalPrice() * 0.08).toFixed(2)}</span>
+                  </button>
 
-              <div className="pt-6 border-t border-gray-100 space-y-3">
-                <div className="flex justify-between text-sm text-[#9a734c]">
-                  <span>Subtotal</span>
-                  <span className="font-bold text-[#1b140d]">$18.49</span>
-                </div>
-                <div className="flex justify-between text-sm text-[#9a734c]">
-                  <span>Delivery Fee</span>
-                  <span className="font-bold text-[#1b140d]">$2.99</span>
-                </div>
-                <div className="flex justify-between text-sm text-[#9a734c]">
-                  <span>Tax</span>
-                  <span className="font-bold text-[#1b140d]">$1.50</span>
-                </div>
-                <div className="flex justify-between items-center pt-4 mt-2 border-t border-dashed border-gray-100">
-                  <span className="text-lg font-black text-[#1b140d]">Total</span>
-                  <span className="text-3xl font-black text-[#ec8013]">$22.98</span>
-                </div>
-              </div>
-
-              <button 
-                onClick={onPlaceOrder}
-                className="w-full bg-[#ec8013] hover:bg-[#d67210] text-white font-black py-4 px-6 rounded-2xl shadow-xl shadow-[#ec8013]/30 transition-all transform active:scale-95 flex items-center justify-between"
-              >
-                <span>Place Order</span>
-                <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">$22.98</span>
-              </button>
-
-              <p className="text-[10px] text-center text-[#9a734c] uppercase tracking-widest font-bold flex items-center justify-center gap-1.5 pt-2">
-                <span className="material-icons-round text-sm">lock</span>
-                Secure Checkout
-              </p>
+                  <p className="text-[10px] text-center text-[#9a734c] uppercase tracking-widest font-bold flex items-center justify-center gap-1.5 pt-2">
+                    <span className="material-icons-round text-sm">lock</span>
+                    Secure Checkout
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>

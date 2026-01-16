@@ -6,35 +6,40 @@ import Footer from './components/Footer';
 import Home from './src/screens/Home';
 import ProductDetail from './src/screens/ProductDetail';
 import Checkout from './src/screens/Checkout';
+import Cart from './src/screens/Cart';
 import Tracking from './src/screens/Tracking';
 import Confirmation from './src/screens/Confirmation';
 import Profile from './src/screens/Profile';
 import Orders from './src/screens/Orders';
-import Favorites from './src/screens/Favorites';
 import Restaurants from './src/screens/Restaurants';
+import RestaurantMenu from './src/screens/RestaurantMenu';
+import SignUp from './src/screens/SignUp';
+import Login from './src/screens/Login';
 import { MOCK_ITEMS } from './src/constants';
 import { createOrder, OrderItem } from './src/api/orders';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { CartProvider, useCart } from './src/context/CartContext';
 
-const App: React.FC = () => {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+const AppContent: React.FC = () => {
+  const [currentScreen, setCurrentScreen] = useState<Screen | 'signup' | 'login' | 'cart'>('home');
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
-  const [cart, setCart] = useState<{ item: FoodItem; quantity: number }[]>([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<{ id: number; name: string } | null>(null);
+  const { isLoggedIn, login, logout, isLoading } = useAuth();
+  const { cart, clearCart } = useCart();
 
-  const navigateTo = (screen: Screen, item?: FoodItem) => {
+  const navigateTo = (screen: Screen | 'signup' | 'login' | 'cart', item?: FoodItem) => {
     if (item) setSelectedItem(item);
     setCurrentScreen(screen);
     window.scrollTo(0, 0);
   };
 
-  const handleCheckout = (item: FoodItem, quantity: number = 1) => {
-    setCart([{ item, quantity }]);
+  const handleCheckout = () => {
     navigateTo('checkout');
   };
 
   const handleSelectRestaurant = (restaurantId: number, name: string) => {
-    // Navigate to home and filter by restaurant
-    // For now, just go to home
-    navigateTo('home');
+    setSelectedRestaurant({ id: restaurantId, name });
+    navigateTo('menu');
   };
 
   const handlePlaceOrder = async () => {
@@ -64,7 +69,7 @@ const App: React.FC = () => {
       console.log('Order created:', response);
       
       // Clear cart and navigate to confirmation
-      setCart([]);
+      clearCart();
       navigateTo('confirmation');
     } catch (error) {
       console.error('Failed to create order:', error);
@@ -74,10 +79,16 @@ const App: React.FC = () => {
 
   const renderScreen = () => {
     switch (currentScreen) {
+      case 'signup':
+        return <SignUp onSignUpSuccess={() => login({ email: '', name: '' })} onNavigate={navigateTo} />;
+      case 'login':
+        return <Login onLoginSuccess={() => {}} onNavigate={navigateTo} />;
       case 'home':
         return <Home onSelectProduct={(item) => navigateTo('detail', item)} />;
       case 'detail':
-        return <ProductDetail item={selectedItem || MOCK_ITEMS[2]} onCheckout={() => selectedItem && handleCheckout(selectedItem)} />;
+        return <ProductDetail item={selectedItem || MOCK_ITEMS[2]} onCheckout={() => navigateTo('cart')} onBack={() => navigateTo('home')} onNavigateLogin={() => navigateTo('login')} />;
+      case 'cart':
+        return <Cart onCheckout={handleCheckout} onContinueShopping={() => navigateTo('home')} onNavigateLogin={() => navigateTo('login')} />;
       case 'checkout':
         return <Checkout onPlaceOrder={handlePlaceOrder} />;
       case 'confirmation':
@@ -88,10 +99,19 @@ const App: React.FC = () => {
         return <Profile />;
       case 'orders':
         return <Orders />;
-      case 'favorites':
-        return <Favorites onSelectProduct={(item) => navigateTo('detail', item)} />;
       case 'restaurants':
         return <Restaurants onSelectRestaurant={handleSelectRestaurant} />;
+      case 'menu':
+        return selectedRestaurant ? (
+          <RestaurantMenu 
+            restaurantId={selectedRestaurant.id}
+            restaurantName={selectedRestaurant.name}
+            onBack={() => navigateTo('restaurants')}
+            onSelectProduct={(item) => navigateTo('detail', item)}
+          />
+        ) : (
+          <Restaurants onSelectRestaurant={handleSelectRestaurant} />
+        );
       default:
         return <Home onSelectProduct={(item) => navigateTo('detail', item)} />;
     }
@@ -104,10 +124,31 @@ const App: React.FC = () => {
         currentScreen={currentScreen} 
       />
       <main className="flex-grow">
-        {renderScreen()}
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <span className="material-icons-round text-6xl text-gray-400 animate-spin block mb-4">
+                autorenew
+              </span>
+              <p className="text-[#9a734c] font-bold">Loading...</p>
+            </div>
+          </div>
+        ) : (
+          renderScreen()
+        )}
       </main>
       <Footer />
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
+    </AuthProvider>
   );
 };
 
