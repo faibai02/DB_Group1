@@ -191,7 +191,7 @@ var temp_body loginBody
 		// generate jwt and return as cookie
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"sub":temp_body.Email,
-			"exp": time.Now().Add(time.Hour).Unix(),
+			"exp": time.Now().Add(time.Hour*24).Unix(),
 		})
 		tokenSigned,err := token.SignedString([]byte(secret))
 		if err != nil {
