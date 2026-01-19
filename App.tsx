@@ -24,6 +24,7 @@ const AppContent: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen | 'signup' | 'login' | 'cart'>('home');
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<{ id: number; name: string } | null>(null);
+  const [lastOrder, setLastOrder] = useState<{orderId: number, items: any[], total: number, address: string} | null>(null);
   const { isLoggedIn, login, logout, isLoading } = useAuth();
   const { cart, clearCart } = useCart();
 
@@ -90,9 +91,14 @@ const AppContent: React.FC = () => {
       case 'cart':
         return <Cart onCheckout={handleCheckout} onContinueShopping={() => navigateTo('home')} onNavigateLogin={() => navigateTo('login')} />;
       case 'checkout':
-        return <Checkout onPlaceOrder={handlePlaceOrder} />;
+        return <Checkout onPlaceOrder={handlePlaceOrder} onNavigateToPage={(page, orderData) => {
+          if (page === 'confirmation' && orderData) {
+            setLastOrder(orderData);
+          }
+          navigateTo(page as any);
+        }} />;
       case 'confirmation':
-        return <Confirmation onTrackOrder={() => navigateTo('tracking')} onGoHistory={() => navigateTo('orders')} />;
+        return <Confirmation orderData={lastOrder} onTrackOrder={() => navigateTo('tracking')} onGoHistory={() => navigateTo('orders')} />;
       case 'tracking':
         return <Tracking />;
       case 'profile':

@@ -52,7 +52,7 @@ A modern full-stack food delivery application built with **Go**, **React**, **Ty
 - **HTTP Client:** Fetch API
 
 ### Database
-- **Primary Database:** MySQL (food_delivery_db)
+- **Primary Database:** MySQL (foodie_db)
 - **Tables:** 8 (customers, restaurants, dishes, orders, order_items, delivery_persons, chat_messages)
 
 ## 📁 Project Structure
@@ -127,9 +127,9 @@ cd DB_Group1
 2. **Create Database from Script**
    - Open phpMyAdmin: `http://localhost/phpmyadmin`
    - Click "New" in the left sidebar
-   - Enter database name: `food_delivery_db`
+   - Enter database name: `foodie_db`
    - Click "Create"
-   - Select the new `food_delivery_db` database
+   - Select the new `foodie_db` database
    - Go to "SQL" tab
    - Copy & paste contents of `script.sql`
    - Click "Go" to execute
@@ -148,7 +148,7 @@ source /path/to/script.sql
 
 **Verify Database Creation:**
 ```bash
-mysql -u root -p -e "SHOW DATABASES; USE food_delivery_db; SHOW TABLES;"
+mysql -u root -p -e "SHOW DATABASES; USE foodie_db; SHOW TABLES;"
 ```
 
 ### Step 3: Configure Backend Connection
@@ -158,11 +158,11 @@ Edit `Go_api/storage.go` and ensure MySQL connection uses correct credentials:
 ```go
 // Line ~15 in storage.go
 func NewDB() (*database, error) {
-	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/food_delivery_db")
+	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/foodie_db")
 	// root = MySQL username (default)
 	// (empty) = MySQL password (default for XAMPP)
 	// 127.0.0.1:3306 = MySQL host and port
-	// food_delivery_db = Database name
+	// foodie_db = Database name
 }
 ```
 
@@ -368,7 +368,7 @@ VITE_API_URL=http://localhost:6969
 ### Backend (storage.go)
 ```go
 // MySQL Connection String
-DSN: "root:@tcp(127.0.0.1:3306)/food_delivery_db"
+DSN: "root:@tcp(127.0.0.1:3306)/foodie_db"
 ```
 
 ## 📱 Responsive Design

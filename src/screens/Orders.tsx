@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getJSON } from '../api/http';
 import { deleteOrder, updateOrderAddress } from '../api/ordersApi';
+import OrderDetail from './OrderDetail';
 
 interface OrderData {
   orders_id: number;
@@ -23,6 +24,7 @@ const Orders: React.FC = () => {
   const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
   const [newAddress, setNewAddress] = useState('');
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!authLoading && isLoggedIn) {
@@ -120,6 +122,15 @@ const Orders: React.FC = () => {
     setNewAddress('');
   };
 
+  if (selectedOrderId !== null) {
+    return (
+      <OrderDetail 
+        orderId={selectedOrderId} 
+        onBack={() => setSelectedOrderId(null)} 
+      />
+    );
+  }
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -175,7 +186,11 @@ const Orders: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-[#f3ede7]">
                 {orders.map((order) => (
-                  <tr key={order.orders_id} className="hover:bg-gray-50 transition-colors group">
+                  <tr 
+                    key={order.orders_id} 
+                    onClick={() => setSelectedOrderId(order.orders_id)}
+                    className="hover:bg-gray-50 transition-colors group cursor-pointer"
+                  >
                     <td className="px-8 py-6 text-sm font-bold text-[#ec8013]">#{order.orders_id}</td>
                     <td className="px-8 py-6 text-sm font-medium text-[#9a734c]">{formatDate(order.created_at)}</td>
                     <td className="px-8 py-6 text-sm font-black text-[#ec8013]">${order.total_amount.toFixed(2)}</td>

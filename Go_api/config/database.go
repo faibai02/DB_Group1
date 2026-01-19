@@ -19,7 +19,7 @@ func InitDatabase() error {
 	// - Port: your MySQL server port
 	// - Database: your database name
 	
-	dsn := "root:@tcp(127.0.0.1:3306)/food_delivery_db"
+	dsn := "root:@tcp(127.0.0.1:3306)/foodie_db"
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {

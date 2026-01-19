@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { FoodItem } from '../types';
 import { fetchMenu } from '../api/menu';
 import { fetchRestaurants, RestaurantRow } from '../api/restaurants';
+import { fetchCategories, Category } from '../api/categories';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 interface HomeProps {
   onSelectProduct: (item: FoodItem) => void;
@@ -12,16 +14,19 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants }) => {
   const [items, setItems] = useState<FoodItem[]>([]);
   const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCart();
+  const { isLoggedIn } = useAuth();
   const [addedToCartId, setAddedToCartId] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchMenu(), fetchRestaurants()])
-      .then(([dishesData, restaurantsData]) => {
+    Promise.all([fetchMenu(), fetchRestaurants(), fetchCategories()])
+      .then(([dishesData, restaurantsData, categoriesData]) => {
         setItems(dishesData);
         setRestaurants(restaurantsData);
+        setCategories(categoriesData);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -33,9 +38,6 @@ const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants })
     setAddedToCartId(item.id);
     setTimeout(() => setAddedToCartId(null), 1500);
   };
-
-  // Group items by category
-  const categories = Array.from(new Set(items.map(item => item.category).filter(Boolean)));
 
   if (loading) {
     return (
@@ -86,22 +88,22 @@ const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants })
           <h2 className="text-2xl font-black text-[#1b140d] mb-6">Browse by Category</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {categories.map((category) => {
-              const categoryItems = items.filter(item => item.category === category);
+              const categoryItems = items.filter(item => item.category === category.name);
               const firstItem = categoryItems[0];
               return (
                 <button
-                  key={category}
+                  key={category.category_id}
                   onClick={() => firstItem && onSelectProduct(firstItem)}
                   className="group relative aspect-square rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all border-2 border-transparent hover:border-[#ec8013]"
                 >
                   <img
-                    src={firstItem?.image}
-                    alt={category}
+                    src={category.image}
+                    alt={category.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-3 text-center">
-                    <div className="text-white font-black text-sm">{category}</div>
+                    <div className="text-white font-black text-sm">{category.name}</div>
                     <div className="text-white/80 text-xs">{categoryItems.length} items</div>
                   </div>
                 </button>
@@ -162,26 +164,38 @@ const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants })
                   )}
                 </div>
 
-                <button
-                  onClick={(e) => handleAddToCart(item, e)}
-                  className={`w-full py-2.5 rounded-xl transition-all text-sm font-bold shadow-sm ${
-                    addedToCartId === item.id
-                      ? 'bg-green-500 text-white'
-                      : 'bg-[#ec8013] text-white hover:bg-[#d67210]'
-                  }`}
-                >
-                  {addedToCartId === item.id ? (
+                {isLoggedIn ? (
+                  <button
+                    onClick={(e) => handleAddToCart(item, e)}
+                    className={`w-full py-2.5 rounded-xl transition-all text-sm font-bold shadow-sm ${
+                      addedToCartId === item.id
+                        ? 'bg-green-500 text-white'
+                        : 'bg-[#ec8013] text-white hover:bg-[#d67210]'
+                    }`}
+                  >
+                    {addedToCartId === item.id ? (
+                      <span className="flex items-center justify-center gap-1">
+                        <span className="material-icons-round text-sm">check</span>
+                        Added!
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-1">
+                        <span className="material-icons-round text-sm">add_shopping_cart</span>
+                        Add to Cart
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full py-2.5 rounded-xl transition-all text-sm font-bold shadow-sm bg-gray-300 text-gray-600 cursor-not-allowed"
+                  >
                     <span className="flex items-center justify-center gap-1">
-                      <span className="material-icons-round text-sm">check</span>
-                      Added!
+                      <span className="material-icons-round text-sm">lock</span>
+                      Login to Order
                     </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-1">
-                      <span className="material-icons-round text-sm">add_shopping_cart</span>
-                      Add to Cart
-                    </span>
-                  )}
-                </button>
+                  </button>
+                )}
               </div>
             </div>
           ))}

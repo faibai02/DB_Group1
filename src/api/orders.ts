@@ -7,7 +7,6 @@ export interface OrderItem {
 }
 
 export interface CreateOrderRequest {
-  customer_id: number;
   restaurant_id: number;
   total_amount: number;
   delivery_address?: string;
@@ -16,10 +15,10 @@ export interface CreateOrderRequest {
 
 export interface CreateOrderResponse {
   success: boolean;
-  order_id: string;
+  order_id: number;
   message: string;
 }
 
 export async function createOrder(orderData: CreateOrderRequest): Promise<CreateOrderResponse> {
-  return postJSON<CreateOrderResponse>("api.php", orderData);
+  return postJSON<CreateOrderResponse>("user/orders", orderData);
 }
