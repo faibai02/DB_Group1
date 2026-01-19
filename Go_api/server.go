@@ -20,6 +20,10 @@ type loginBody struct {
 	Pass string `json:"password"`
 }
 const secret string = "cat"
+var attempt = make(map[string]int)
+var time_out = make(map[string]time.Time)
+const MAX_ATTEMPT = 10
+
 
 
 func Init()(*server,error) {
@@ -164,36 +168,56 @@ func (s *server) signIn(c *gin.Context){
 }
 //login handler
 func (s *server) logIn(c *gin.Context) {
-	var temp_body loginBody
+	
+var temp_body loginBody
 	if c.BindJSON(&temp_body) != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest,gin.H{
 			"error": "unable to bind the request",
 		})
 		return	
 	}
-	//compare the id (currently not hash the password)
-	err := s.database.LoginChecker(temp_body)
+	// check time out
+	if until,time_outed := time_out[temp_body.Email]; time_outed && time.Now().Before(until){
+		c.AbortWithStatus(http.StatusTooManyRequests)
+		return
+	}
+	//compare the id and pass
+	valid,err := s.database.LoginChecker(temp_body)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}	
-	// generate jwt and return as cookie
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":temp_body.Email,
-		"exp": time.Now().Add(time.Hour*24).Unix(),
-	})
-	tokenSigned,err := token.SignedString([]byte(secret))
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest,gin.H{
-			"message": "Something went wrong",
+	if valid {
+		// generate jwt and return as cookie
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"sub":temp_body.Email,
+			"exp": time.Now().Add(time.Hour).Unix(),
 		})
-	}
-	
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("Authorisation",tokenSigned,86400,"","",false,true)
+		tokenSigned,err := token.SignedString([]byte(secret))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest,gin.H{
+				"message": "Something went wrong",
+			})
+		}
 
-	c.JSON(http.StatusOK,gin.H{})
 	
+		c.SetSameSite(http.SameSiteLaxMode)
+		c.SetCookie("Authorisation",tokenSigned,3600,"","",false,true)
+
+		//clear attempt table
+		delete(attempt,temp_body.Email)
+		delete(time_out,temp_body.Email)
+		c.JSON(http.StatusOK,gin.H{})
+	}else {
+		attempt[temp_body.Email]++
+		if attempt[temp_body.Email]>= MAX_ATTEMPT {
+			time_out[temp_body.Email] = time.Now().Add(time.Minute*5)
+			c.AbortWithStatus(http.StatusTooManyRequests)
+
+		}else {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+	}
 }
 // func to get user profile
 func (s *server) getProfile(c *gin.Context) {
