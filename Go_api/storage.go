@@ -205,7 +205,7 @@ func (d *database) CheckAndStoreUser(cus customers) error {
 func (d *database) LoginChecker(body loginBody) (bool,error) {
 	
 	var sql_password string
-	find_pass := `SELECT password FROM food_delivery_db.customers WHERE email = ?`
+	find_pass := `SELECT password FROM foodie_db.customers WHERE email = ?`
 	row := d.db.QueryRow(find_pass,body.Email)
 
 	if err := row.Scan(&sql_password); err != nil {
