@@ -156,19 +156,11 @@ const Cart: React.FC<CartProps> = ({ onCheckout, onContinueShopping, onNavigateL
                   <span className="text-[#9a734c]">Subtotal</span>
                   <span className="font-bold text-[#1b140d]">${getTotalPrice().toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#9a734c]">Delivery Fee</span>
-                  <span className="font-bold text-[#1b140d]">$2.99</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#9a734c]">Tax (8%)</span>
-                  <span className="font-bold text-[#1b140d]">${(getTotalPrice() * 0.08).toFixed(2)}</span>
-                </div>
 
                 <div className="flex justify-between items-center pt-3 mt-3 border-t border-gray-100">
                   <span className="font-black text-[#1b140d]">Total</span>
                   <span className="text-2xl font-black text-[#ec8013]">
-                    ${(getTotalPrice() + 2.99 + getTotalPrice() * 0.08).toFixed(2)}
+                    ${getTotalPrice().toFixed(2)}
                   </span>
                 </div>
               </div>

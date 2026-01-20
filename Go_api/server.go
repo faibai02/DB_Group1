@@ -49,6 +49,7 @@ func (s *server) Run(port string) {
 	s.router.GET("/restaurant",s.getRestaurant)
 	s.router.GET("/categories",s.getCategories)
 	s.router.GET("/home",s.getHome)
+	s.router.GET("/dishes-by-category",s.getDishesByCategory)
 
 	s.router.POST("/login",s.logIn)
 	s.router.POST("/logout",s.logOut)
@@ -141,6 +142,27 @@ func (s *server) getHome(c *gin.Context){
 	c.IndentedJSON(http.StatusOK,dishes)
 }
 
+// Get dishes by category
+func (s *server) getDishesByCategory(c *gin.Context) {
+	categoryName := c.Query("category")
+	if categoryName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "category parameter is required",
+		})
+		return
+	}
+	
+	dishes, err := s.database.GetDishesByCategory(categoryName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	
+	c.IndentedJSON(http.StatusOK, dishes)
+}
+
 // sign in handler
 func (s *server) signIn(c *gin.Context){
 	var temp_cus  customers
@@ -174,7 +196,9 @@ func (s *server) logIn(c *gin.Context) {
 	//compare the id (currently not hash the password)
 	err := s.database.LoginChecker(temp_body)
 	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.AbortWithStatusJSON(http.StatusBadRequest,gin.H{
+			"error": "This account does not exist or invalid credentials",
+		})
 		return
 	}	
 	// generate jwt and return as cookie

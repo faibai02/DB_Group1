@@ -264,6 +264,38 @@ func (d *database) GetAllDishes() ([]*dishes,error) {
 	return dishes_array,nil
 }
 
+// Get dishes filtered by category
+func (d *database) GetDishesByCategory(categoryName string) ([]*dishes, error) {
+	var dishes_array []*dishes
+	get_dishes := `SELECT d.dish_id, d.restaurant_id, d.name, 
+	               COALESCE(d.description, '') as description, 
+	               d.price, d.is_available, 
+	               COALESCE(c.name, '') as category,
+	               COALESCE(r.name, '') as restaurant_name,
+	               COALESCE(d.image, '') as image
+	               FROM foodie_db.dishes d
+	               LEFT JOIN foodie_db.restaurants r ON d.restaurant_id = r.restaurant_id
+	               LEFT JOIN foodie_db.categories c ON c.category_id = d.category_id
+	               WHERE c.name = ?`
+
+	rows, err := d.db.Query(get_dishes, categoryName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var temp_dish dishes
+		err := rows.Scan(&temp_dish.ID, &temp_dish.Rest_id, &temp_dish.Name, &temp_dish.Description, &temp_dish.Price, &temp_dish.Available, &temp_dish.Category, &temp_dish.RestaurantName, &temp_dish.Image)
+		if err != nil {
+			return nil, err
+		}
+		dishes_array = append(dishes_array, &temp_dish)
+	}
+
+	return dishes_array, nil
+}
+
 // Get orders for a specific customer
 func (d *database) GetCustomerOrders(customerId int) ([]*orders, error) {
 	var orders_array []*orders

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FoodItem } from '../types';
 import { fetchMenu } from '../api/menu';
 import { fetchRestaurants, RestaurantRow } from '../api/restaurants';
-import { fetchCategories, Category } from '../api/categories';
+import { fetchCategories, Category, fetchDishesByCategory } from '../api/categories';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,6 +17,8 @@ const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants })
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categoryLoading, setCategoryLoading] = useState(false);
   const { addToCart } = useCart();
   const { isLoggedIn } = useAuth();
   const [addedToCartId, setAddedToCartId] = useState<string | null>(null);
@@ -31,6 +33,32 @@ const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleCategoryClick = async (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setCategoryLoading(true);
+    try {
+      const categoryDishes = await fetchDishesByCategory(categoryName);
+      setItems(categoryDishes);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+
+  const handleShowAllDishes = async () => {
+    setSelectedCategory(null);
+    setLoading(true);
+    try {
+      const allDishes = await fetchMenu();
+      setItems(allDishes);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddToCart = (item: FoodItem, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -89,12 +117,16 @@ const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants })
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {categories.map((category) => {
               const categoryItems = items.filter(item => item.category === category.name);
-              const firstItem = categoryItems[0];
+              const isSelected = selectedCategory === category.name;
               return (
                 <button
                   key={category.category_id}
-                  onClick={() => firstItem && onSelectProduct(firstItem)}
-                  className="group relative aspect-square rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all border-2 border-transparent hover:border-[#ec8013]"
+                  onClick={() => handleCategoryClick(category.name)}
+                  className={`group relative aspect-square rounded-2xl overflow-hidden shadow-sm transition-all border-2 ${
+                    isSelected 
+                      ? 'border-[#ec8013] shadow-lg' 
+                      : 'border-transparent hover:shadow-xl hover:border-[#ec8013]'
+                  }`}
                 >
                   <img
                     src={category.image}
@@ -116,11 +148,38 @@ const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants })
       {/* All Dishes */}
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-black text-[#1b140d]">All Dishes</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-black text-[#1b140d]">
+              {selectedCategory ? `${selectedCategory} Dishes` : 'All Dishes'}
+            </h2>
+            {selectedCategory && (
+              <button
+                onClick={handleShowAllDishes}
+                className="flex items-center gap-1 text-sm font-bold text-[#ec8013] hover:text-[#d67210] transition-colors"
+              >
+                <span className="material-icons-round text-base">close</span>
+                Clear Filter
+              </button>
+            )}
+          </div>
           <span className="text-sm text-[#9a734c]">{items.length} dishes</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {categoryLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <span className="material-icons-round text-4xl text-gray-400 animate-spin">
+              autorenew
+            </span>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-12 text-[#9a734c]">
+            <span className="material-icons-round text-5xl block mb-4 opacity-50">
+              restaurant_menu
+            </span>
+            <p>No dishes found in this category</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {items.map((item) => (
             <div
               key={item.id}
@@ -199,7 +258,8 @@ const Home: React.FC<HomeProps> = ({ onSelectProduct, onNavigateToRestaurants })
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </section>
     </div>
   );

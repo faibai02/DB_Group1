@@ -1,8 +1,8 @@
--- Création de la base de données
+-- Database creation
 CREATE DATABASE IF NOT EXISTS foodie_db;
 USE foodie_db;
 
--- Table des Clients
+-- Customers Table
 CREATE TABLE customers (
     customer_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE customers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table des Restaurants
+-- Restaurants Table
 CREATE TABLE restaurants (
     restaurant_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE restaurants (
     is_active BOOLEAN DEFAULT TRUE
 );
 
--- Table des Catégories de Plats
+-- Dish Categories Table
 CREATE TABLE categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
@@ -32,18 +32,7 @@ CREATE TABLE categories (
     image VARCHAR(500)
 );
 
--- Table des Livreurs
-CREATE TABLE delivery_persons (
-    delivery_person_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    phone VARCHAR(20) NOT NULL,
-    email VARCHAR(100),
-    vehicle_type VARCHAR(50),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Table des Plats (Dishes)
+-- Dishes Table
 CREATE TABLE dishes (
     dish_id INT AUTO_INCREMENT PRIMARY KEY,
     restaurant_id INT NOT NULL,
@@ -57,22 +46,20 @@ CREATE TABLE dishes (
     FOREIGN KEY (category_id) REFERENCES categories(category_id)
 );
 
--- Table des Commandes (Orders)
+-- Orders Table
 CREATE TABLE orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
     restaurant_id INT NOT NULL,
-    delivery_person_id INT,
     status VARCHAR(50) DEFAULT 'Pending',
     total_amount DECIMAL(10, 2) NOT NULL,
     delivery_address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
-    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id),
-    FOREIGN KEY (delivery_person_id) REFERENCES delivery_persons(delivery_person_id)
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id)
 );
 
--- Table des Items de commande
+-- Order Items Table
 CREATE TABLE order_item (
     order_id INT NOT NULL,
     dish_id INT NOT NULL,
@@ -84,19 +71,8 @@ CREATE TABLE order_item (
     FOREIGN KEY (dish_id) REFERENCES dishes(dish_id)
 );
 
--- Table des Messages (Chat)
-CREATE TABLE chat_messages (
-    message_id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT NOT NULL,
-    send_id INT NOT NULL,
-    sender_type VARCHAR(20) NOT NULL,
-    content TEXT NOT NULL,
-    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
-);
-
 -- =========================
--- INSERTION DES DONNÉES
+-- DATA INSERTION
 -- =========================
 
 -- Categories
@@ -150,7 +126,7 @@ INSERT INTO restaurants (name, address, opening_hours, phone, image) VALUES
  'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&w=1200&h=800&q=80');
 
 -- =========================
--- DISHES : Burger Palace
+-- DISHES: Burger Palace
 -- =========================
 INSERT INTO dishes (restaurant_id, name, description, price, image, category_id, is_available) VALUES
 (1, 'Classic Cheeseburger', 'Juicy beef patty with melted cheddar cheese.', 9.99,
@@ -174,7 +150,7 @@ INSERT INTO dishes (restaurant_id, name, description, price, image, category_id,
  (SELECT category_id FROM categories WHERE name='Dessert'), TRUE);
 
 -- =========================
--- DISHES : Sushi & Roll
+-- DISHES: Sushi & Roll
 -- =========================
 INSERT INTO dishes (restaurant_id, name, description, price, image, category_id, is_available) VALUES
 (2, 'California Roll', 'Crab, avocado, and cucumber rolled with rice.', 8.99,
@@ -194,7 +170,7 @@ INSERT INTO dishes (restaurant_id, name, description, price, image, category_id,
  (SELECT category_id FROM categories WHERE name='Appetizer'), TRUE);
 
 -- =========================
--- DISHES : Pizza Heaven
+-- DISHES: Pizza Heaven
 -- =========================
 INSERT INTO dishes (restaurant_id, name, description, price, image, category_id, is_available) VALUES
 (3, 'Margherita Pizza', 'Fresh mozzarella, tomato sauce, basil, and olive oil.', 11.99,
@@ -206,7 +182,7 @@ INSERT INTO dishes (restaurant_id, name, description, price, image, category_id,
  (SELECT category_id FROM categories WHERE name='Pizza'), TRUE);
 
 -- =========================
--- DISHES : Thai Street
+-- DISHES: Thai Street
 -- =========================
 INSERT INTO dishes (restaurant_id, name, description, price, image, category_id, is_available) VALUES
 (4, 'Green Curry Chicken', 'Spicy green curry with basil and tender chicken.', 11.99,
@@ -214,7 +190,7 @@ INSERT INTO dishes (restaurant_id, name, description, price, image, category_id,
  (SELECT category_id FROM categories WHERE name='Chicken'), TRUE);
 
 -- =========================
--- DISHES : Pasta Italiano
+-- DISHES: Pasta Italiano
 -- =========================
 INSERT INTO dishes (restaurant_id, name, description, price, image, category_id, is_available) VALUES
 (5, 'Spaghetti Carbonara', 'Creamy sauce with pancetta, egg, and parmesan.', 12.99,
@@ -222,7 +198,7 @@ INSERT INTO dishes (restaurant_id, name, description, price, image, category_id,
  (SELECT category_id FROM categories WHERE name='Pasta'), TRUE);
 
 -- =========================
--- DISHES : Chicken Express
+-- DISHES: Chicken Express
 -- =========================
 INSERT INTO dishes (restaurant_id, name, description, price, image, category_id, is_available) VALUES
 (6, 'Crispy Fried Chicken', 'Golden fried chicken seasoned with herbs and spices.', 9.99,
@@ -241,10 +217,4 @@ INSERT INTO customers (name, email, password, phone) VALUES
 ('Jane Smith', 'jane@example.com', '$2a$10$YourHashedPasswordHere', '555-1002'),
 ('Mike Johnson', 'mike@example.com', '$2a$10$YourHashedPasswordHere', '555-1003');
 
--- =========================
--- DELIVERY PERSONS
--- =========================
-INSERT INTO delivery_persons (name, phone, email, vehicle_type) VALUES
-('Alex Rodriguez', '555-0201', 'alex@delivery.com', 'Bike'),
-('Lisa Chen', '555-0202', 'lisa@delivery.com', 'Motorcycle'),
-('James Wilson', '555-0203', 'james@delivery.com', 'Scooter');
+

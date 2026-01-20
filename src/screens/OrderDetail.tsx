@@ -32,12 +32,12 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingAddress, setEditingAddress] = useState(false);
   const [editingQuantities, setEditingQuantities] = useState(false);
-  const [newAddress, setNewAddress] = useState('');
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -50,7 +50,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
       setLoading(true);
       const data = await getJSON<OrderDetail>(`user/orders/${orderId}`);
       setOrder(data);
-      setNewAddress(data.delivery_address);
       const qty: Record<number, number> = {};
       data.items.forEach(item => {
         qty[item.dish_id] = item.quantity;
@@ -65,38 +64,10 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
     }
   };
 
-  const handleUpdateAddress = async () => {
-    if (!newAddress.trim()) {
-      alert('Address cannot be empty');
-      return;
-    }
-    
-    try {
-      setIsSaving(true);
-      await putJSON(`user/orders/${orderId}`, { delivery_address: newAddress });
-      setEditingAddress(false);
-      if (order) {
-        setOrder({ ...order, delivery_address: newAddress });
-      }
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update address');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleSaveQuantities = async () => {
     try {
       setIsSaving(true);
-      // Update each item that has changed quantity
-      for (const [dishId, newQty] of Object.entries(quantities)) {
-        const originalQty = order?.items.find(item => item.dish_id === parseInt(dishId))?.quantity;
-        if (originalQty !== newQty) {
-          await putJSON(`user/orders/${orderId}/items/${dishId}`, { quantity: newQty });
-        }
-      }
-      
-      // Refresh the order data
+      // Just refresh the data since auto-save already saved everything
       await fetchOrderDetail();
       setEditingQuantities(false);
     } catch (err) {
@@ -129,6 +100,26 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
       ...prev,
       [dishId]: newQuantity
     }));
+
+    // Auto-save with debounce
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        setIsSaving(true);
+        await putJSON(`user/orders/${orderId}/items/${dishId}`, { quantity: newQuantity });
+        // Refresh order data to ensure consistency
+        await fetchOrderDetail();
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1000); // Save after 1 second of no changes
+
+    setAutoSaveTimeout(timeout);
   };
 
   const formatDate = (dateString: string) => {
@@ -160,6 +151,21 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      await deleteRequest(`user/orders/${orderId}`);
+      onBack();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete order');
+      setIsDeleting(false);
     }
   };
 
@@ -202,7 +208,15 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
             ← Back to Orders
           </button>
           <h1 className="text-3xl font-bold text-[#1b140d]">Order #{order.orders_id}</h1>
-          <div className="w-24"></div>
+          {order.status.toLowerCase() === 'pending' && (
+            <button
+              onClick={handleDeleteOrder}
+              disabled={isDeleting}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold disabled:opacity-50"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Order'}
+            </button>
+          )}
         </div>
 
         {/* Order Header Info */}
@@ -319,56 +333,11 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
           )}
         </div>
 
-        {/* Delivery Address */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-2xl font-bold text-[#1b140d] mb-4">Delivery Address</h2>
-          {!editingAddress ? (
-            <div>
-              <p className="text-gray-700 mb-4">{order.delivery_address}</p>
-              {order.status === 'Pending' && (
-                <button
-                  onClick={() => setEditingAddress(true)}
-                  className="px-4 py-2 bg-[#ec8013] text-white rounded-lg hover:bg-[#d47310] font-semibold"
-                >
-                  Edit Address
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <textarea
-                value={newAddress}
-                onChange={(e) => setNewAddress(e.target.value)}
-                className="w-full p-3 border border-[#f3ede7] rounded-lg focus:outline-none focus:border-[#ec8013]"
-                rows={3}
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={handleUpdateAddress}
-                  disabled={isSaving}
-                  className="px-4 py-2 bg-[#ec8013] text-white rounded-lg hover:bg-[#d47310] font-semibold disabled:opacity-50"
-                >
-                  {isSaving ? 'Saving...' : 'Save Address'}
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingAddress(false);
-                    setNewAddress(order.delivery_address);
-                  }}
-                  className="px-4 py-2 bg-gray-300 text-[#1b140d] rounded-lg hover:bg-gray-400 font-semibold"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Note about modifications */}
         {order.status !== 'Pending' && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
             <p className="font-semibold">Note:</p>
-            <p>You can only modify quantities and address for pending orders.</p>
+            <p>You can only modify quantities for pending orders.</p>
           </div>
         )}
       </div>

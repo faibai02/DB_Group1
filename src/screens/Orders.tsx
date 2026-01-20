@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getJSON } from '../api/http';
-import { deleteOrder, updateOrderAddress } from '../api/ordersApi';
 import OrderDetail from './OrderDetail';
 
 interface OrderData {
@@ -21,9 +20,6 @@ const Orders: React.FC = () => {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
-  const [newAddress, setNewAddress] = useState('');
-  const [isDeleting, setIsDeleting] = useState<number | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -33,6 +29,12 @@ const Orders: React.FC = () => {
       setLoading(false);
     }
   }, [isLoggedIn, authLoading]);
+
+  useEffect(() => {
+    if (selectedOrderId === null && !authLoading && isLoggedIn) {
+      fetchOrders();
+    }
+  }, [selectedOrderId, authLoading, isLoggedIn]);
 
   const fetchOrders = async () => {
     try {
@@ -79,47 +81,6 @@ const Orders: React.FC = () => {
 
   const canModifyOrder = (status: string) => {
     return status.toLowerCase() === 'pending';
-  };
-
-  const handleDeleteOrder = async (orderId: number) => {
-    if (!window.confirm('Are you sure you want to delete this order?')) {
-      return;
-    }
-    
-    try {
-      setIsDeleting(orderId);
-      await deleteOrder(orderId);
-      await fetchOrders(); // Refresh the list
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete order');
-    } finally {
-      setIsDeleting(null);
-    }
-  };
-
-  const handleEditOrder = (orderId: number, currentAddress: string) => {
-    setEditingOrderId(orderId);
-    setNewAddress(currentAddress);
-  };
-
-  const handleSaveAddress = async (orderId: number) => {
-    if (!newAddress.trim()) {
-      alert('Please enter a delivery address');
-      return;
-    }
-
-    try {
-      await updateOrderAddress(orderId, newAddress);
-      setEditingOrderId(null);
-      await fetchOrders(); // Refresh the list
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update order');
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingOrderId(null);
-    setNewAddress('');
   };
 
   if (selectedOrderId !== null) {
@@ -187,8 +148,7 @@ const Orders: React.FC = () => {
               <tbody className="divide-y divide-[#f3ede7]">
                 {orders.map((order) => (
                   <tr 
-                    key={order.orders_id} 
-                    onClick={() => setSelectedOrderId(order.orders_id)}
+                    key={order.orders_id}
                     className="hover:bg-gray-50 transition-colors group cursor-pointer"
                   >
                     <td className="px-8 py-6 text-sm font-bold text-[#ec8013]">#{order.orders_id}</td>
@@ -200,60 +160,15 @@ const Orders: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-8 py-6">
-                      {editingOrderId === order.orders_id ? (
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={newAddress}
-                            onChange={(e) => setNewAddress(e.target.value)}
-                            className="flex-1 px-3 py-2 border border-[#f3ede7] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ec8013]"
-                            placeholder="Enter new address"
-                          />
-                          <button
-                            onClick={() => handleSaveAddress(order.orders_id)}
-                            className="px-3 py-2 bg-[#ec8013] text-white rounded-lg text-xs font-bold hover:bg-[#d47012] transition-colors"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-300 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-sm font-medium text-[#9a734c]">{order.delivery_address || 'N/A'}</span>
-                      )}
+                      <span className="text-sm font-medium text-[#9a734c]">{order.delivery_address || 'N/A'}</span>
                     </td>
                     <td className="px-8 py-6">
-                      {canModifyOrder(order.status) ? (
-                        <div className="flex gap-2">
-                          {editingOrderId !== order.orders_id && (
-                            <>
-                              <button
-                                onClick={() => handleEditOrder(order.orders_id, order.delivery_address)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title="Edit address"
-                              >
-                                <span className="material-icons-round text-xl">edit</span>
-                              </button>
-                              <button
-                                onClick={() => handleDeleteOrder(order.orders_id)}
-                                disabled={isDeleting === order.orders_id}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                                title="Delete order"
-                              >
-                                <span className="material-icons-round text-xl">
-                                  {isDeleting === order.orders_id ? 'hourglass_empty' : 'delete'}
-                                </span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">Cannot modify</span>
-                      )}
+                      <button
+                        onClick={() => setSelectedOrderId(order.orders_id)}
+                        className="text-blue-600 hover:text-blue-800 font-semibold"
+                      >
+                        View Details
+                      </button>
                     </td>
                   </tr>
                 ))}

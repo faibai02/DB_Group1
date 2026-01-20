@@ -17,7 +17,16 @@ export async function postJSON<T>(path: string, data: any): Promise<T> {
     credentials: 'include', // Include cookies for authentication
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error(`API failed: ${res.status}`);
+  if (!res.ok) {
+    let errorMessage = `API failed: ${res.status}`;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch {
+      // Keep the default error message if JSON parsing fails
+    }
+    throw new Error(errorMessage);
+  }
   return res.json() as Promise<T>;
 }
 

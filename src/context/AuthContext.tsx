@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getJSON } from '../api/http';
+import { getJSON, postJSON } from '../api/http';
 
 interface User {
   email: string;
@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await getJSON('logout');
+      await postJSON('logout', {});
     } catch (error) {
       console.error('Logout error:', error);
     }
